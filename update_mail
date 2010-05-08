@@ -1,0 +1,33 @@
+#!/bin/sh
+
+set -e
+
+PATH=$PATH:/usr/local/bin
+
+/opt/local/bin/getmail -q -r ~/.getmail/gmail
+
+notmuch new > /dev/null
+
+# tag mail from me as 'sent' 
+notmuch tag +sent from:dss@orst.edu and not tag:sent
+notmuch tag +sent from:darren@shepard.org and not tag:sent
+notmuch tag +sent from:darren.shepard@gmail.com and not tag:sent
+notmuch tag -inbox from:dss@orst.edu and tag:inbox
+notmuch tag -inbox from:darren@shepard.org and tag:inbox
+notmuch tag -inbox from:darren.shepard@gmail.com and tag:inbox
+
+# tag blowfish, skip inbox
+notmuch tag +blowfish to:blowfish@familycom.org and not tag:blowfish
+notmuch tag -inbox tag:inbox and tag:blowfish
+
+# tag notmuch, skip inbox
+notmuch tag +notmuch to:notmuch@notmuchmail.org and not tag:notmuch
+notmuch tag -inbox tag:inbox and tag:notmuch
+
+# tag bulk, skip inbox
+notmuch tag +bulk from:Donna and subject:"Fwd" and not tag:bulk
+notmuch tag +bulk from:Gary and subject:"Fwd" and not tag:bulk
+notmuch tag +bulk from:Facebook and subject:"suggested you"
+notmuch tag +bulk from:LinkedIn and subject:"LinkedIn Network Updates"
+notmuch tag +bulk from:Twitter and subject:"is now following you"
+notmuch tag -inbox tag:inbox and tag:bulk

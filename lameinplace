@@ -1,0 +1,5 @@
+#!/bin/sh
+
+WAV=$1
+echo `lame --r3mix $WAV && rm $WAV`
+

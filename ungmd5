@@ -1,0 +1,10 @@
+#!/usr/bin/perl -w
+use strict;
+
+for (<>) 
+{
+   if (/\(([^\)]+)\)\s*\=\s*([0-9a-z]{32})/i) 
+   {
+      print "$2 *$1\n"; 
+   }
+}

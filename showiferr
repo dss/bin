@@ -1,0 +1,26 @@
+#!/bin/sh
+
+usage="\
+
+
+usage: $0 'cmd'
+
+Execute 'cmd', capture output and stderr.  Forward this output to our stdout only if the cmd
+exits with an error status.  This is intented for use in crontabs where cron mails any output
+(even normal diagnostics) as an error message even if the cmd exits with status 0.
+
+"
+
+cmd="${*:?$0: expected cmd$usage}"
+# BUGBUG security error here: someone can create a symlink in /tmp and we can overwrite our own
+# BUGBUG files (e.g. /tmp/showiferr.$$ -> /home/mns/.login);  Plus if the tmp files are left around
+# BUGBUG eventually PID #'s will start to collide.
+tmpf=/tmp/showiferr.$$
+eval "($cmd)" > $tmpf 2>&1
+status=$?
+if [ $status != 0 ]; then
+    cat $tmpf
+    echo "Exit status: $status"
+fi
+rm -f "$tmpf"
+exit $status

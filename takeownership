@@ -1,0 +1,31 @@
+#!/bin/sh
+
+# usage: takeownership {file...}
+#  changes ownership of named files to current UID
+#  requires current UID have write permission to director(ies) containing files
+
+# BUG: does not preserve hard-links to a file; each link will become a separate file
+# BUG: implemented by copying files, may be slow for very large files
+# BUG: requires read-permission of the file being "taken."
+
+die () {
+    echo "$1" 1>&2
+    exit 1
+}
+
+for FROM in "$@"
+do
+    # protect ourselves from files that look like switches
+    case "$FROM" in
+	/*)	;;
+	*)	FROM="./$FROM";;
+    esac
+    
+    TO="$FROM.$$~"
+    mv -f "$FROM" "$TO"   || die "$0: failed to mv '$FROM'; check parent-dir permissions"
+
+    # copy the old file, preserving file mode
+    cp -p "$TO"   "$FROM" || die "$0: failed to copy '$TO'"
+    rm -f "$TO"           || die "$0: failed to delete '$TO'"
+done
+exit 0

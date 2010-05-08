@@ -1,0 +1,4 @@
+#!/bin/sh
+set -e
+DEST=$1
+rsync -avn ~/.gnupg ~/.ssh ~/.tarsnap ~/Documents $DEST

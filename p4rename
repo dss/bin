@@ -1,0 +1,22 @@
+#!/usr/bin/perl
+
+($op = shift) || die "Usage: p4rename perlexpr [files]\n";
+
+if (!@ARGV) {
+    @ARGV = <STDIN>;
+    chop(@ARGV);
+}
+for (@ARGV) {
+    $from = $_;
+    eval $op;
+    die $@ if $@;
+    $to = $_;
+    
+    my @p4branch = ("p4", "integrate", $from, $to);
+    system(@p4branch) == 0 
+        or die "system @p4branch failed: $?\n";
+    
+    my @p4delete = ("p4", "delete", $from);
+    system(@p4delete) == 0 
+        or die "system @p4delete failed: $?\n";
+}

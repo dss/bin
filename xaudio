@@ -1,0 +1,16 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+my ($base, $cmd);
+if (!@ARGV) {
+    @ARGV = <STDIN>;
+    chop(@ARGV);
+}
+for (@ARGV) {
+    if (m/(.*)\.(avi)/) {
+        $base = quotemeta $1;
+        $cmd = "ffmpeg -i $base.avi -vn -acodec copy $base.mp3";
+        system($cmd);
+    }
+}

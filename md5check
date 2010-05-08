@@ -1,0 +1,145 @@
+#!/usr/bin/perl
+#
+# md5check - recursively check md5sums on a directory tree.
+#
+# Requires the Digest::MD5 module.
+#
+# $Id: md5check,v 1.1 2006/01/18 03:52:53 dss Exp $
+
+use warnings;
+use strict;
+use File::Find;
+use File::Basename;
+
+$File::Find::dont_use_nlink = 1;
+
+eval "use Digest::MD5";
+if ($@) {
+   die <<EOF
+You must install the Digest::MD5 Perl module for this script to work.  This
+is available as the package "libdigest-md5-perl" on Debian/GNU Linux, or
+on other systems you should be able to run:
+
+    perl -MCPAN -eshell
+
+and (after any configuration steps) type
+
+  install Digest::MD5
+
+Thanks, and sorry for the inconvenience.
+EOF
+  ;
+}
+
+my $progname = basename $0; $progname =~ s/\.pl$//;
+
+my $status = 0;
+
+push (@ARGV, ".") unless scalar @ARGV;
+
+foreach my $arg (@ARGV) {
+   if (-d $arg) {
+      sub wanted {
+	 $status |= check ($_) if $_ =~ /\.md5$/i;
+      }
+      find (\&wanted, $arg);
+   } else {
+      $status |= check ($arg);
+   }
+}
+
+exit $status;
+
+sub check {
+   my $md5file = shift;
+   my $dir = dirname $md5file;
+   my $base = basename $md5file;
+   my $status = 0;
+   my $ok = 0;
+   my $failures = 0;
+   my $missing = 0;
+
+   if (not open (MD5, $md5file)) {
+      warn "$progname: unable to open MD5 file $md5file: $!\n";
+      return 1;
+   }
+
+   undef $/;
+   my $data = <MD5>;
+   close MD5;
+
+   $data =~ s/\r/\n/g;
+
+   # Split md5 data on newlines
+   my @LINES = split /\n/, $data;
+   # Pull out only lines that look like md5 lines
+   my @SUMS = grep /^([\da-f]{32})\s+\*?(.*)$/, @LINES;
+   # Sort the sums by filename
+   @SUMS = sort { my @A = split /\s+/, $a; my @B = split /\s+/, $b;
+		  $A[1] cmp $B[1] } @SUMS;
+
+   if (not scalar @SUMS) {
+      warn "$progname: $base: no valid MD5 sums found\n";
+      return 0;
+   }
+
+   print "$progname: checking MD5 file $base (" . scalar (@SUMS) .
+     " files):\n";
+
+   $| = 1;
+
+   foreach (@SUMS) {
+      if (not /^([\da-f]{32})\s+\*?(.*)$/) {
+	 warn "$progname: $md5file: invalid syntax: $_\n";
+	 next;
+      }
+
+      my ($sum, $file) = ($1, $2);
+      my $fullfile = "$dir/$file";
+
+      if (not open (FILE, $fullfile)) {
+	 warn "$progname: $base: can't open $fullfile: $!\n";
+	 $status |= 2;
+	 if (not -f $fullfile) {
+	    ++$missing;
+	 }
+	 next;
+      }
+
+      binmode FILE;		# In case we're on Windows
+
+      print " checking $file: ";
+
+      my $md5 = Digest::MD5->new;
+      my $hexdigest = $md5->addfile (*FILE)->hexdigest;
+
+      if ($hexdigest eq $sum) {
+	 print "OK\n";
+	 ++$ok;
+      } else {
+	 print "ERROR\n";
+	 $status |= 1;
+	 ++$failures;
+      }
+      close FILE;
+   }
+
+   if ($status == 0) {
+      print "$progname: $base: $ok files OK\n";
+   } elsif ($failures) {
+      warn "$progname: $base: ERROR: " .
+	($ok > 0 ? "$ok file" . ($ok > 1 ? "s" : "") . " OK, " : "") .
+	  "$failures failure" .
+	    ($failures > 1 ? "s" : "") .
+	      ($missing ? ", $missing missing file" .
+	       ($missing > 1 ? "s" : "") : "") . "\n";
+   } elsif ($missing) {
+      warn "$progname: $base: WARNING: " .
+	($ok > 0 ? "$ok files OK, " : "") .
+	  "$missing files missing\n";
+   }
+
+   close MD5;
+
+   $status;
+}

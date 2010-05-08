@@ -1,0 +1,27 @@
+#!/usr/bin/perl
+use strict;
+
+# Hack to suck md5 sums out of text 
+# files and format them in a a manner 
+# that GNU md5sum can use.
+
+if (!@ARGV) { 
+    @ARGV = <STDIN> or
+        die "usage: dap [text files]";
+}
+
+for (@ARGV) {
+    
+    open(TXT, $_) or 
+        die "can't open $_: $!";
+    
+    s/\.txt/\.avi/; 
+    my $avi = $_;
+    
+    while (<TXT>) {
+        if (/([0-9a-z]{32})/i) {
+            print "$1 *$avi\n";
+            last;
+        }
+    }
+}
