@@ -1,0 +1,4 @@
+#!/bin/sh
+set -e  # stop on errors
+/Users/dss/bin/wsdc_cal > /Users/dss/tmp/wsdc.ical
+cp /Users/dss/tmp/wsdc.ical /Users/dss/Dropbox/Public/
